@@ -11,6 +11,7 @@ import javafx.stage.Stage;
 import java.util.List;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 /// Uma aplicação desktop (usando a biblioteca [OpenJFX (JavaFX)](http://openjfx.io))
 /// que desenha polígonos na tela e calcula o perímetro de cada um:
@@ -111,64 +112,33 @@ public class PoligonosApp extends Application {
         return label;
     }
 
-    /// Descobre o tipo de cada polígono a partir da quantidade de pontos que ele tem.
-    /// Se um polígono representado por um elemento na lista [#pontosPoligonos] tiver 4 pontos,
-    /// ele é um "Quadrilátero", se tiver 3 é um "Triângulo" e assim por diante.
-    ///
-    /// A implementação do método deve usar a operação [#flatMap(Function)] que
-    /// percorre os itens de [#pontosPoligonos] (cada item representando um polígono).
-    /// O flatMap recebe então cada um destes itens, que é uma lista de pontos.
-    /// A partir de tal lista, deve obter o total de pontos.
-    /// Em uma operação posterior na cadeia de Stream, deve-se verificar
-    /// qual o total de pontos de cada item que representa um polígono
-    /// e devolver uma String indicando o tipo de polígono.
-    ///
-    /// @return uma lista de String indicando se o polígono é um "quadrilátero" (quadrado ou retângulo),
-    /// "triângulo", "pentágono", "hexágono" ou apenas um "polígono" geral quando tiver mais de 6 lados.
-    protected List<String> tipoPoligonos(){
-        // TODO Apague esta linha e a próxima e implemente seu código
-        return List.of();
+    protected List<String> tipoPoligonos() {
+        return pontosPoligonos.stream()
+                .flatMap(poligono -> Stream.of(poligono.size()))
+                .map(qtd -> switch (qtd) {
+                    case 3 -> "Triângulo";
+                    case 4 -> "Quadrilátero";
+                    case 5 -> "Pentágono";
+                    case 6 -> "Hexágono";
+                    default -> "Polígono";
+                })
+                .toList();
     }
 
-    /// Calcula o perímetro de cada polígono.
-    /// O perímetro é a soma da distância entre cada [Point] (x,y) do [Polygon].
-    /// Se você pensar em um polígono como um quadrado, o perímetro representa a distância que você percorreria
-    /// se andasse ao redor da borda do quadrado, do ponto inicial até o último ponto.
-    ///
-    /// Este método é mais complexo. A implementação dele deve usar a operação [#flatMap(Function)] que
-    /// percorre os itens de [#pontosPoligonos] (cada item representando um polígono).
-    /// O que queremos obter de cada item (lista de pontos) é a soma da distância entre cada ponto.
-    ///
-    /// O record [Point] (veja javadoc dele para mais detalhes)
-    /// possui um construtor [#Point(Point,Point)] que recebe 2 pontos, cria um novo que contém:
-    /// 1. as coordenadas do segundo ponto;
-    /// 2. a distância entre os pontos no atributo [#distance] (acessado pelo método getter [#distance()]).
-    /// Tal construtor já soma a distância entre p1 e p2 com a distância do p1 com o ponto anterior a ele.
-    ///
-    /// Assim, você precisaria percorrer todos os pontos de um polígono, pegar um par de pontos e passar
-    /// para tal construtor. Pegar o terceiro ponto e o ponto criado na chamada do construtor anteriormente,
-    /// e chamar o construtor novamente, passando estes 2 pontos, até que você chegue ao último ponto
-    /// do polígono.
-    /// Mas é exatamente isso que o reduce faz. Então para obter um ponto final contendo a soma da distância entre
-    /// todos os pontos de um polígono, você deve usar o método reduce no parâmetro recebido no flatMap.
-    ///
-    /// No entanto, considere que temos um triângulo. Se utilizamos o método [#reduce(BinaryOperator)],
-    /// ele permitirá calcular a distância entre os pontos A → B e B → C somente.
-    /// Mas para calcular o perímetro, precisamos fechar os pontos, obtendo também a distância entre C → A.
-    /// Assim, podemos começar do A (1º ponto) e indicar que o ponto anterior é o C.
-    /// Apesar de iniciar do A, estaríamos calculando as distâncias entre C → A, A → B e B → C, fechando
-    /// todos os pontos. Com a versão do reduce indicada acima, não será possível fazer isso.
-    /// Desta forma, a versão [#reduce(Object,BinaryOperator)] deve ser usada no lugar.
-    /// Leia o JavaDoc de tal método para mais detalhes.
-    ///
-    /// Após o flatMap, você vai ter um único ponto para cada polígono, que representa o último ponto encontrado
-    /// e contém o perímetro do polígono, que pode ser acessado por [#distance()].
-    /// Desta forma, basta retornar este resultado como uma nova lista de [Double].
-    ///
-    /// @return uma lista contendo o perímetro de cada polígono
-    protected List<Double> perimetros(){
-        // TODO Apague esta linha e a próxima e implemente seu código
-        return List.of();
+    protected List<Double> perimetros() {
+        return pontosPoligonos.stream()
+                .flatMap(poligono -> {
+                    Point primeiro = poligono.get(0);
+                    Point ultimo = poligono.get(poligono.size() - 1);
+
+                    Point resultado = poligono.stream()
+                            .reduce(
+                                    new Point(ultimo, primeiro),
+                                    (anterior, atual) -> new Point(anterior, atual)
+                            );
+
+                    return Stream.of(resultado.distance());
+                })
+                .toList();
     }
 }
-
